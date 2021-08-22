@@ -1,4 +1,5 @@
 discord.py
-PyMySQL
+PyMySQL==0.10.0
 BeautifulSoup4
 lxml
+requests
