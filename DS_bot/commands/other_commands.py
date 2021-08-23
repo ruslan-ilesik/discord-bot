@@ -4,7 +4,7 @@ from discord.embeds import Embed
 from discord.ext import commands
 from discord.utils import get
 from discord import Colour
-from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType
+from discord_components import DiscordComponents, Button, ButtonStyle
 import requests
 import json
 import random
@@ -115,10 +115,10 @@ async def question(ctx):
 
     if response.user == ctx.author:
         if response.component.label == question['correct_answer']:
-            await response.respond(type = InteractionType.DeferredChannelMessageWithSource)
+            await response.respond(type = 5)
             await ctx.send(embed = stuff.embed('The answer was: '+question['correct_answer'],Colour.green(),'Correct!'))
         else:
-            await response.respond(type = InteractionType.DeferredChannelMessageWithSource)
+            await response.respond(type = 5)
             await ctx.send(embed = stuff.embed('The answer was: '+question['correct_answer'],Colour.red(),'Incorrect!'))
 
 
