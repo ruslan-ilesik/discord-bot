@@ -1,8 +1,15 @@
+import asyncio
 import discord
+from discord.embeds import Embed
 from discord.ext import commands
 from discord.utils import get
 from discord import Colour
+from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType
+import requests
+import json
+import random
 import time
+import html
 
 from __main__ import bot, use_shop
 import some_stuff as stuff
@@ -19,28 +26,28 @@ async def help(ctx,*args):
             emb.add_field(name="2) магазин и покупки", value="**shop , buy**", inline=False)
             emb.add_field(name="3) коины", value="**balance, transfer**", inline=False)
             emb.add_field(name="4) роли", value="**edit_custom_role, check_subscriptions**", inline=False)
-            emb.add_field(name="5) остальное", value="**info, ping, stats**", inline=False)
+            emb.add_field(name="5) остальное", value="**info, ping, stats, question**", inline=False)
             await ctx.send(embed  = emb)
         else:
             if args[0] == '1':
                 emb = discord.Embed(title=":robot: | Помощник", description="Категория развлечения \n", color=Colour.gold())
-                emb.add_field(name="hug - обнять пользователя ", value="ПРИНИМАЕТ: id или пинг пользователя которого вы хотите обнять, стоимость "+ str(use_shop['hug']), inline=False)
-                emb.add_field(name="slap - дать ляща пользователю ", value="ПРИНИМАЕТ: id или пинг пользователя которому вы хотиту дать лящ, стоимость "+ str(use_shop['kick']), inline=False)
-                emb.add_field(name="casino - проверьте вашу удачу сделав ставку ", value="ПРИНИМАЕТ: amount - размер ставки, обязательно целое число больше 0", inline=False)
-                emb.add_field(name="change_sex - сменить пол", value='ПРИНИМАЕТ: значение men или women', inline=False)
+                emb.add_field(name="hug - обнять пользователя ", value="Принимает: id или пинг пользователя которого вы хотите обнять, стоимость "+ str(use_shop['hug']), inline=False)
+                emb.add_field(name="slap - дать ляща пользователю ", value="Принимает: id или пинг пользователя которому вы хотиту дать лящ, стоимость "+ str(use_shop['kick']), inline=False)
+                emb.add_field(name="casino - проверьте вашу удачу сделав ставку ", value="Принимает: amount - размер ставки, обязательно целое число больше 0", inline=False)
+                emb.add_field(name="change_sex - сменить пол", value='Принимает: значение men или women', inline=False)
                 emb.add_field(name="lottery  - показывает доступные лотереи на сервере   ", value=" возращает список лотерей", inline=False)
                 await ctx.send(embed  = emb)
             
             elif args[0] == '2':
                 emb = discord.Embed(title=":robot: | Помощник", description="Категория магазин и покупки \n", color=Colour.gold())
                 emb.add_field(name="shop  - магазин  ", value="Выводит список товаров ", inline=False)
-                emb.add_field(name="buy  - купить   ", value="ПРИНИМАЕТ: id товара из магазина, совершает покупку ", inline=False)
+                emb.add_field(name="buy  - купить   ", value="Принимает: id товара из магазина, совершает покупку ", inline=False)
                 await ctx.send(embed  = emb)
         
             elif args[0] == '3':
                 emb = discord.Embed(title=":robot: | Помощник", description="Категория коины \n", color=Colour.gold())
-                emb.add_field(name="balance  - баланс  ", value="ПРИНИМАЕТ: id пользователя чей баланс вы хотите посмотреть, если не передали ничего то выведится ваш баланс", inline=False)
-                emb.add_field(name="transfer  - перевести деньги   ", value="ПРИНИМАЕТ: id или пинг пользователя которому вы хотите перевести коины, а также сумму которую вы хотите перевести , переводит деньги с одного кошелька на другой ", inline=False)
+                emb.add_field(name="balance  - баланс  ", value="Принимает: id пользователя чей баланс вы хотите посмотреть, если не передали ничего то выведится ваш баланс", inline=False)
+                emb.add_field(name="transfer  - перевести деньги   ", value="Принимает: id или пинг пользователя которому вы хотите перевести коины, а также сумму которую вы хотите перевести , переводит деньги с одного кошелька на другой ", inline=False)
                 await ctx.send(embed  = emb)
                     
             elif args[0] == '4':
@@ -54,6 +61,7 @@ async def help(ctx,*args):
                 emb.add_field(name="info  - информация о боте   ", value="Возращает немного информации о боте", inline=False)
                 emb.add_field(name="ping  - проверить задержку с ботом ", value="Выводит задержку в сообщениях в милисикундах  ", inline=False)
                 emb.add_field(name="stats  - немного вашей статистики ", value="Выводит вашу статистику на этом сервере  ", inline=False)
+                emb.add_field(name="question  - случайный вопрос ", value="Выводит случайнный вопрос, и варианты отвeта на него. Cможете ответить правильно?", inline=False)
                 await ctx.send(embed  = emb)
 
             else:
@@ -73,6 +81,46 @@ async def ping(ctx):
         t = time.time()
         m =await ctx.send(embed = stuff.embed('pong 🏓',Colour.dark_grey()))
         await m.edit( embed = stuff.embed('ping: '+ str(int((time.time() - t )*1000))+' ms',Colour.blue(),emoji=':ping_pong: '))
+
+
+@bot.command(pass_context= True)
+async def question(ctx):
+    from __main__ import bot
+    question = json.loads(requests.get('https://opentdb.com/api.php?amount=1').text)['results']
+    if len(question) == 0:
+        question = json.loads(requests.get('https://opentdb.com/api.php?amount=1').text)['results']
+        if len(question) == 0 :
+            await ctx.send(embed = stuff.embed('Error to get a question for you',Colour.red()))
+            return
+    question = question[0]
+    question['question'] = html.unescape(question['question'])
+    question['correct_answer'] = html.unescape(question['correct_answer'])
+    posible_answers = question['incorrect_answers']
+    for i in range(len(posible_answers)):
+        posible_answers[i] = html.unescape(posible_answers[i])
+
+    posible_answers.append(question['correct_answer'])
+    random.shuffle(posible_answers)
+
+
+
+    await ctx.send(embed = Embed(title = 'QUIZ (you have 10 seconds for answer)',description = question['question'],color = Colour.gold()
+    ),components = [Button(style=ButtonStyle.blue, label=i) for i in posible_answers])
+
+    try:
+        response = await bot.wait_for("button_click",timeout=10.0)
+    except:
+        await ctx.send(embed = stuff.embed('Correct answer was: '+question['correct_answer'],Colour.red(),'TIME OUT'))
+        return
+
+    if response.user == ctx.author:
+        if response.component.label == question['correct_answer']:
+            await response.respond(type = InteractionType.DeferredChannelMessageWithSource)
+            await ctx.send(embed = stuff.embed('The answer was: '+question['correct_answer'],Colour.green(),'Correct!'))
+        else:
+            await response.respond(type = InteractionType.DeferredChannelMessageWithSource)
+            await ctx.send(embed = stuff.embed('The answer was: '+question['correct_answer'],Colour.red(),'Incorrect!'))
+
 
 
 @bot.command(pass_context= True)
