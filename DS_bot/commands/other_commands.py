@@ -5,11 +5,13 @@ from discord.ext import commands
 from discord.utils import get
 from discord import Colour
 from discord_components import DiscordComponents, Button, ButtonStyle
+from discord_components.component import Component
 import requests
 import json
 import random
 import time
 import html
+import tic_tac_toe as ttt
 
 from __main__ import bot, use_shop
 import some_stuff as stuff
@@ -26,7 +28,7 @@ async def help(ctx,*args):
             emb.add_field(name="2) магазин и покупки", value="**shop , buy**", inline=False)
             emb.add_field(name="3) коины", value="**balance, transfer**", inline=False)
             emb.add_field(name="4) роли", value="**edit_custom_role, check_subscriptions**", inline=False)
-            emb.add_field(name="5) остальное", value="**info, ping, stats, question**", inline=False)
+            emb.add_field(name="5) остальное", value="**info, ping, stats, question, tic_tac_toe**", inline=False)
             await ctx.send(embed  = emb)
         else:
             if args[0] == '1':
@@ -62,6 +64,7 @@ async def help(ctx,*args):
                 emb.add_field(name="ping  - проверить задержку с ботом ", value="Выводит задержку в сообщениях в милисикундах  ", inline=False)
                 emb.add_field(name="stats  - немного вашей статистики ", value="Выводит вашу статистику на этом сервере  ", inline=False)
                 emb.add_field(name="question  - случайный вопрос ", value="Выводит случайнный вопрос, и варианты отвeта на него. Cможете ответить правильно?", inline=False)
+                emb.add_field(name="tic_tac_toe  - игра в крестики нолики с ботом ", value="Выводит случайнный вопрос, и варианты отвeта на него. Cможете ответить правильно?", inline=False)
                 await ctx.send(embed  = emb)
 
             else:
@@ -105,22 +108,62 @@ async def question(ctx):
 
 
     await ctx.send(embed = Embed(title = 'QUIZ (you have 10 seconds for answer)',description = question['question'],color = Colour.gold()
-    ),components = [Button(style=ButtonStyle.blue, label=i) for i in posible_answers])
+    ),components = [Button(style=ButtonStyle.blue, label=i, id = str(ctx.author.id)+i) for i in posible_answers])
 
     try:
-        response = await bot.wait_for("button_click",timeout=10.0)
+        while True:
+            response = await bot.wait_for("button_click",timeout=10.0)
+            if ctx.author == response.user and ctx.channel == response.channel and response.component.label in posible_answers and str(ctx.author.id) in response.component.id : 
+                break
     except:
         await ctx.send(embed = stuff.embed('Correct answer was: '+question['correct_answer'],Colour.red(),'TIME OUT'))
         return
 
-    if response.user == ctx.author:
-        if response.component.label == question['correct_answer']:
-            await response.respond(type = 5)
-            await ctx.send(embed = stuff.embed('The answer was: '+question['correct_answer'],Colour.green(),'Correct!'))
-        else:
-            await response.respond(type = 5)
-            await ctx.send(embed = stuff.embed('The answer was: '+question['correct_answer'],Colour.red(),'Incorrect!'))
+    await response.respond(type = 7)
+    if response.component.label == question['correct_answer']:
+        await ctx.send(embed = stuff.embed('The answer was: '+question['correct_answer'],Colour.green(),'Correct!'))
+    else:
+        await ctx.send(embed = stuff.embed('The answer was: '+question['correct_answer'],Colour.red(),'Incorrect!'))
 
+
+@bot.command(pass_context= True)
+async def tic_tac_toe(ctx):
+    def buttons():
+       return [[Button(id = json.dumps([i,b]) ,style=(ButtonStyle.blue if field.get_map()[i][b] =='-' else (ButtonStyle.green if field.get_map()[i][b] == 'x' else ButtonStyle.red)), label=field.get_map()[i][b]) for b in range(len(field.get_map()[i]))] for i in range(3)]
+
+    # generate game and bot 
+    field = ttt.Field(clear_place_sign = '-')
+    ttt_bot = ttt.Bot(field)
+    if not field.is_payer_turn():
+        ttt_bot.make_move()
+    message = await ctx.send(embed = Embed(title = 'Игра "крестики нолики" (30 секунд на ход)',color = Colour.gold()),
+    components = buttons())
+    try:
+        while True:
+            response = await bot.wait_for("button_click",timeout = 30.0)
+            if response.component.label != '-':
+                await response.respond(type = 4,embed = stuff.embed('Место занято, попробуйте другое',Colour.red(),'Ошибка хода'))
+            elif ctx.author == response.user and ctx.channel == response.channel:
+                await response.respond(type = 7)
+                ch = field.make_move(json.loads(response.component.id))
+                if ch:
+                    await message.edit(components = buttons())
+                    if ch == 'draw':
+                        await ctx.send(embed = stuff.embed('Ничья',Colour.green(),'Вы играете на уровне бота'))
+                        return
+                    await ctx.send(embed = stuff.embed('Поздравляем!!!',Colour.green(),'Вы выиграли'))
+                    return
+                ch = ttt_bot.make_move()
+                if ch:
+                    await message.edit(components = buttons())
+                    if ch == 'draw':
+                        await ctx.send(embed = stuff.embed('Ничья',Colour.green(),'Вы играете на уровне бота'))
+                        return
+                    await ctx.send(embed = stuff.embed('Сожалеем',Colour.red(),'Вы проиграли'))
+                    return
+                await message.edit(components = buttons())   
+    except:
+        await ctx.send(embed = stuff.embed('Игра была закрыта из-за вашей неактивности',Colour.red(),'Время вышло'))
 
 
 @bot.command(pass_context= True)
