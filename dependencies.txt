@@ -5,4 +5,4 @@ BeautifulSoup4
 lxml
 requests
 
-tic-tac-toe-api-bot==0.2.4
+tic-tac-toe-api-bot==0.2.6.2
