@@ -4,5 +4,6 @@ PyMySQL==0.10.0
 BeautifulSoup4
 lxml
 requests
+stockfish==3.17.0
 
 tic-tac-toe-api-bot==0.2.6.2
