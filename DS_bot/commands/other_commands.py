@@ -190,7 +190,7 @@ async def stats(ctx):
 @bot.command(pass_context= True)
 async def chess(ctx):
     from __main__ import ch_engine
-    board = ch.Board('7k/R2R4/8/8/8/8/5K2/8')
+    board = ch.Board()
 
     letters = ['a','b','c','d','e','f','g','h']
                         
@@ -273,6 +273,14 @@ async def chess(ctx):
         img = Image.new('RGBA', Image.open(path+'board.png').size,(0, 0, 0, 0))
         img.paste(Image.open(path+'board.png'), (0,0,img.size[0],img.size[1]))
 
+        if board.is_check():
+            pos = board.king(True)+1
+            y = 7-int(pos/8)
+            x = (pos%8 if pos>=8 else pos)-1
+            sq = Image.open(path+'red_square.png').convert("RGBA")
+            sq.putalpha(128)
+            img.paste(sq,(x*square_size+5,y*square_size),sq)
+
         if selected_figure:
             y = int(selected_figure[1])-1
             x = letters.index(selected_figure[0])
@@ -302,8 +310,6 @@ async def chess(ctx):
             return m.attachments[0].url
         
     message = await ctx.send(embed = stuff.embed('подождите, бот думает'))
-    emb = Embed(title = 'Шахматы (2 мин на ход)',description = 'выберите фигуру которой хотите совершить ход')
-    emb.set_image(url = await make_img())
     try:
         while True:
 
@@ -378,7 +384,7 @@ async def chess(ctx):
             emb = stuff.embed(title = 'Выигрыш',text = 'Да вам просто повезло',color=Colour.green())
         emb.set_image(url = await make_img())
         await message.edit(embed = emb,components = [])
-    except TimeoutError:
+    except asyncio.exceptions.TimeoutError:
         await ctx.send(embed = stuff.embed('Вы думали слишком долго',Colour.red(),'Время вышло'))
         return
 
