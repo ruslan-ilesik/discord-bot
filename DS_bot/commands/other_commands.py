@@ -190,7 +190,7 @@ async def stats(ctx):
 @bot.command(pass_context= True)
 async def chess(ctx):
     from __main__ import ch_engine
-    board = ch.Board()
+    board = ch.Board('7k/R2R4/8/8/8/8/5K2/8')
 
     letters = ['a','b','c','d','e','f','g','h']
                         
@@ -369,12 +369,12 @@ async def chess(ctx):
             board.push(result.move)
             if  board.is_game_over():
                 break
-        
+
         if board.outcome().termination._value_ == 3: #draw
             emb = stuff.embed(title = 'Ничья',text = 'Это была напряженная игра!!',color=Colour.gold(),emoji = ':woozy_face: ')
-        elif board.outcome().termination._value_ == 2: #black
+        elif not board.outcome().winner: #black
             emb = stuff.embed(title = 'Проигрыш',text= 'Вы глупы, или бот слишком умен, скорее второе xD',color=Colour.red())
-        elif board.outcome().termination._value_ == 1: #white
+        elif board.outcome().winner: #white
             emb = stuff.embed(title = 'Выигрыш',text = 'Да вам просто повезло',color=Colour.green())
         emb.set_image(url = await make_img())
         await message.edit(embed = emb,components = [])
