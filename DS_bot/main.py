@@ -7,11 +7,12 @@ from discord import Colour
 from discord_components import DiscordComponents
 import asyncio
 import json
-import os
+import sys
 import random
 import datetime
 import traceback 
 import re
+import chess.engine
 
 
 import bot_data
@@ -23,6 +24,9 @@ bot = commands.Bot(command_prefix='+',intents=intents)
 bot.remove_command('help')
 use_shop ={'kick':20,
         'hug':20}
+
+
+is_windows = hasattr(sys, 'getwindowsversion')
 
 import data_base.work_with_db as db
 import data_base.db_backup as db_backup
@@ -48,8 +52,15 @@ for_alias = {'b':'balance','sub_check':'check_subscriptions','check_sub':'check_
 @bot.event
 async def on_ready():
     DiscordComponents(bot)
-    global work_with_commands
+    global work_with_commands, ch_engine
     import work_with_commands
+    
+    print('starting chess engine')
+    if is_windows:
+        transport, ch_engine = await chess.engine.popen_uci("./data/engines/chess/stockfish/stockfish.exe")
+    else:
+       transport, ch_engine = await chess.engine.popen_uci("./data/engines/chess/stockfish/stockfish")
+    print('chess engine started')
 
     f= open('log.txt','w')
     f.write('')
