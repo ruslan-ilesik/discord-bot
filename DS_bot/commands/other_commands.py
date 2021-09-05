@@ -211,7 +211,12 @@ async def chess(ctx):
     def generate_buttons_moves(posible_moves,part2 = False):
         buttons = [[]]
         for i in posible_moves:
-            buttons[-1].append(Button(id = i,label=i,style=ButtonStyle.blue))
+            k =str(board).replace(' ','').split('\n')
+            k = (k[8-int(i[1])][letters.index(i[0])] if len(list(i)) == 2 else i[2].upper())
+            if k != '.':
+                buttons[-1].append(Button(id = i,label=(i if len(list(i)) == 2 else i[0:-1:1]),style=ButtonStyle.blue,emoji=bot.get_emoji(emojis[k])))
+            else:
+                buttons[-1].append(Button(id = i,label=(i if len(list(i)) == 2 else i[0:-1:1]),style=ButtonStyle.blue))
             if len(buttons[-1]) > 4:
                 if  len(buttons) < 5:
                     buttons.append([])
@@ -249,15 +254,16 @@ async def chess(ctx):
 
             if i !='.' and i.isupper():
                 id = letters[x]+str(y)
-                buttons[-1].append(Button(id = id,style=ButtonStyle.blue,label=id,emoji= bot.get_emoji(emojis[i])))
+                if  id in [str(i)[0:2] for i in board.legal_moves]:
+                    buttons[-1].append(Button(id = id,style=ButtonStyle.blue,label=id,emoji= bot.get_emoji(emojis[i])))
                 if len(buttons[-1]) > 4 :
                     buttons.append([])
 
             x+=1
-        if buttons[-1] == []:
+        if len(buttons[-1]) == 0:
             buttons = buttons[0:-1:1]
-        if len(buttons[-1])>4:
-            buttons[-1].append([])
+        if (len(buttons) > 0 and len(buttons[-1])>4) or len(buttons) == 0:
+            buttons.append([])
         buttons[-1].append(Button(id = 'exit',style=ButtonStyle.red,emoji='🚪'))
         return buttons
 
@@ -372,6 +378,7 @@ async def chess(ctx):
             emb = stuff.embed(title = 'Выигрыш',text = 'Да вам просто повезло',color=Colour.green())
         emb.set_image(url = await make_img())
         await message.edit(embed = emb,components = [])
-    except:
+    except TimeoutError:
         await ctx.send(embed = stuff.embed('Вы думали слишком долго',Colour.red(),'Время вышло'))
         return
+
