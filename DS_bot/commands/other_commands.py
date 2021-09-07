@@ -392,7 +392,7 @@ async def chess(ctx):
             emb = stuff.embed(title = 'Выигрыш',text = 'Да вам просто повезло',color=Colour.green())
         emb.set_image(url = await make_img())
         await message.edit(embed = emb,components = [])
-    except TimeoutError:
+    except:
         await ctx.send(embed = stuff.embed('Вы думали слишком долго',Colour.red(),'Время вышло'))
         return
 
