@@ -15,6 +15,7 @@ import json
 import random
 import time
 import html
+from requests.models import Response
 import tic_tac_toe as ttt
 import chess as ch
 from PIL import Image, ImageDraw
@@ -191,7 +192,18 @@ async def stats(ctx):
 async def chess(ctx):
     from __main__ import ch_engine
     board = ch.Board()
-
+    message = await ctx.send(embed = stuff.embed('Выберите сложность бота'),components = [[Button(label='1',style=ButtonStyle.blue),Button(label='2',style=ButtonStyle.blue),Button(label='3',style=ButtonStyle.blue)]])
+    try:
+        t= time.time()+20
+        while True:
+            response = await bot.wait_for("button_click",timeout = t-time.time())
+            if ctx.author == response.user and response.message == message :
+                break
+    except:
+        await ctx.send(embed = stuff.embed('Вы думали слишком долго',Colour.red(),'Время вышло'))
+        return
+    depth = int(response.component.label)
+    await response.respond(type=7,embed = stuff.embed('подождите, бот думает'),components=[])
     letters = ['a','b','c','d','e','f','g','h']
                         
     emojis = {
@@ -210,6 +222,10 @@ async def chess(ctx):
 
     def generate_buttons_moves(posible_moves,part2 = False):
         buttons = [[]]
+
+
+
+
         for i in posible_moves:
             k =str(board).replace(' ','').split('\n')
             k = (k[8-int(i[1])][letters.index(i[0])] if len(list(i)) == 2 else i[2].upper())
@@ -273,14 +289,6 @@ async def chess(ctx):
         img = Image.new('RGBA', Image.open(path+'board.png').size,(0, 0, 0, 0))
         img.paste(Image.open(path+'board.png'), (0,0,img.size[0],img.size[1]))
 
-        if board.is_check():
-            pos = board.king(True)+1
-            y = 7-int(pos/8)
-            x = (pos%8 if pos>=8 else pos)-1
-            sq = Image.open(path+'red_square.png').convert("RGBA")
-            sq.putalpha(128)
-            img.paste(sq,(x*square_size+5,y*square_size),sq)
-
         if selected_figure:
             y = int(selected_figure[1])-1
             x = letters.index(selected_figure[0])
@@ -309,7 +317,7 @@ async def chess(ctx):
             m = await bot.get_channel(883373495260708954).send(file=discord.File(fp=image_binary, filename='image.png'))
             return m.attachments[0].url
         
-    message = await ctx.send(embed = stuff.embed('подождите, бот думает'))
+    
     try:
         while True:
 
@@ -371,20 +379,20 @@ async def chess(ctx):
             board.push(ch.Move.from_uci(from_where[0]+from_where[1]+response.component.id))
             if  board.is_game_over():
                 break
-            result = await ch_engine.play(board, ch.engine.Limit(time=0.1))
+            result = await ch_engine.play(board, ch.engine.Limit(depth = depth))
             board.push(result.move)
             if  board.is_game_over():
                 break
-
+        
         if board.outcome().termination._value_ == 3: #draw
             emb = stuff.embed(title = 'Ничья',text = 'Это была напряженная игра!!',color=Colour.gold(),emoji = ':woozy_face: ')
-        elif not board.outcome().winner: #black
+        elif board.outcome().termination._value_ == 2: #black
             emb = stuff.embed(title = 'Проигрыш',text= 'Вы глупы, или бот слишком умен, скорее второе xD',color=Colour.red())
-        elif board.outcome().winner: #white
+        elif board.outcome().termination._value_ == 1: #white
             emb = stuff.embed(title = 'Выигрыш',text = 'Да вам просто повезло',color=Colour.green())
         emb.set_image(url = await make_img())
         await message.edit(embed = emb,components = [])
-    except asyncio.exceptions.TimeoutError:
+    except TimeoutError:
         await ctx.send(embed = stuff.embed('Вы думали слишком долго',Colour.red(),'Время вышло'))
         return
 
