@@ -2,9 +2,13 @@ import asyncio
 from operator import imatmul, pos
 from os import cpu_count, path
 import re
+from typing import List
 import discord
+from discord import embeds
+from discord import emoji
 from discord.embeds import Embed
 from discord.ext import commands
+from discord.player import FFmpegPCMAudio
 from discord.utils import get
 from discord import Colour
 from discord_components import DiscordComponents, Button, ButtonStyle
@@ -20,6 +24,7 @@ import tic_tac_toe as ttt
 import chess as ch
 from PIL import Image, ImageDraw, ImageFont
 import io
+import checkers as checker
 
 from __main__ import bot, use_shop
 import some_stuff as stuff
@@ -497,3 +502,179 @@ async def _2048(ctx):
             
             await message.edit(embed = emb,components = [])
             return
+
+
+@bot.command(pass_context= True)
+async def checkers(ctx):
+    emojis = {'w':888820550380716122,
+              'W':888820550665904218,
+              'b':888820550468788225,
+              'B':888820550330376193}
+
+    def path_to_cords(path):
+        cords = []
+        letters = ['a','b','c','d','e','f','g','h']
+        for i in path:
+            cords.append([letters[i[1]],8-i[0]])
+        return cords
+
+    def generate_buttons_way(figure_pos = []):
+        moves = [i for i in field.posible_moves if figure_pos in i]
+        buttons = [[]]
+        for i in moves:
+            cords = path_to_cords(i)
+            if len(buttons[-1]) > 4:
+                buttons.append([])
+        
+            buttons[-1].append(Button(label= ' -> '.join([b[0]+str(b[1]) for b in cords]),style= ButtonStyle.blue,id = json.dumps(i),emoji = bot.get_emoji(emojis[str(field).split('\n')[i[0][0]][i[0][1]]])))
+
+        if len(buttons[-1]) == 5:
+            buttons.append([])
+        buttons[-1].append(Button(id = 'back',style=ButtonStyle.red,emoji='🔙'))
+        return buttons    
+        
+
+    def generate_buttons_choose_figure():
+        buttons = [[]]
+        used_cords = []
+        for i in field.posible_moves:
+            cords = path_to_cords(i)
+            if len(buttons[-1]) > 4:
+                buttons.append([])
+            if not cords[0][0]+str(cords[0][1]) in used_cords:
+                buttons[-1].append(Button(label= cords[0][0]+str(cords[0][1]),style= ButtonStyle.blue,id = json.dumps(i[0]),emoji = bot.get_emoji(emojis[str(field).split('\n')[i[0][0]][i[0][1]]])))
+                used_cords.append(cords[0][0]+str(cords[0][1]))
+            
+        if len(buttons[-1]) == 5:
+            buttons.append([])
+        buttons[-1].append(Button(id = 'exit',style=ButtonStyle.red,emoji='🚪'))
+        return buttons    
+
+
+    async def generate_image( color_pos = False,figure_pos = []):
+        path = './data/texturs/checkers/'
+        square_size = 125 #px
+        img = Image.new('RGBA', Image.open(path+'board.png').size,(0, 0, 0, 0))
+        img.paste(Image.open(path+'board.png'), (0,0,img.size[0],img.size[1]))
+
+        if color_pos:
+            draw = ImageDraw.Draw(img, "RGBA")
+            used_cords = []
+            for way in [i for i in field.posible_moves if figure_pos in i]:
+                for pos in way:
+                    if pos in used_cords:
+                        continue
+                    used_cords.append(pos)
+                    ind = way.index(pos)
+                    obj = (field.map[pos[0]+ (1 if pos[0] > way[ind-1][1] else -1)][pos[0]+ (1 if pos[1] > way[ind-1][1] else -1)] if ind !=0 else None)
+                   
+                    pos = [pos[1],pos[0]]
+                    d = [way[ind-1][1],way[ind-1][0]]
+                    draw.rectangle(((pos[0]*square_size, pos[1]*square_size), (pos[0]*square_size+square_size, pos[1]*square_size+square_size)), fill=(0,255,0, 127))
+                    if  ind != 0 and (abs(pos[0] - d[0]) > 1 and abs(pos[0] - d[0]) > 1) and obj:   
+                        draw.rectangle((((pos[0]+ (1 if pos[0] < d[0] else -1))*square_size, (pos[1]+ (1 if pos[1] < d[1] else -1))*square_size), ((pos[0]+ (1 if pos[0] < d[0] else -1))*square_size+square_size, (pos[1]+ (1 if pos[1] < d[1] else -1))*square_size+square_size)), fill=(255,0,0, 127))
+                        
+        x = 0
+        y = 0 
+        for i in str(field):
+            if i == '\n':
+                y += square_size
+                x = 0
+                continue
+            if i != '.':
+                p_img = Image.open(path + (i if i.islower() else i.lower()+'_k') +'.png')
+                img.paste(p_img,(x,y),p_img)
+
+            x += square_size
+
+        with io.BytesIO() as image_binary:
+            img.save(image_binary, 'PNG')
+            image_binary.seek(0)
+            m = await bot.get_channel(883373495260708954).send(file=discord.File(fp=image_binary, filename='image.png'))
+            return m.attachments[0].url
+
+    think_embed = stuff.embed('Подождите, бот думает')
+    game_embed = Embed(title = 'Игра в шашки (1 минута на ход)',description = 'Ориентируйтесь по координатам на краях картинки')
+    message = await ctx.send(embed = stuff.embed('Bыберите сложность бота'),components = [[Button(label = 1,style = ButtonStyle.blue,id = 1),Button(label = 2,style = ButtonStyle.blue,id = 3),Button(label = 3,style = ButtonStyle.blue,id = 5)]])
+    try:
+        t= time.time()+30
+        while True:
+            response = await bot.wait_for("button_click",timeout = t-time.time())
+            if ctx.author == response.user and response.message == message :
+                break
+    except:
+        await ctx.send(embed = stuff.embed('Вы думали слишком долго',Colour.red(),'Время вышло'))
+        return 
+
+    await response.respond(type = 7, embed = think_embed,components = [])
+    depth = int(response.component.id)
+    checkers_bot = checker.Bot()
+    field = checker.Field('white')
+    while True:
+        game_embed.set_image(url =await generate_image())
+        await message.edit(embed = game_embed,components = generate_buttons_choose_figure())
+
+        try:
+            t= time.time()+60
+            while True:
+                response = await bot.wait_for("button_click",timeout = t-time.time())
+                if ctx.author == response.user and response.message == message :
+                    break
+        except:
+            await ctx.send(embed = stuff.embed('Вы думали слишком долго',Colour.red(),'Время вышло'))
+            return
+        id = response.component.id
+        if id == 'exit':
+            think_embed.description = '**Игра закрыта преждевремено**'
+            await response.respond(type = 7, embed = think_embed,components = [])
+            return
+
+        await response.respond(type = 7, embed = think_embed,components = [])
+        game_embed.set_image(url = await generate_image(True,json.loads(id)))
+        await message.edit(embed = game_embed,components = generate_buttons_way(json.loads(id)))    
+        try:
+            t= time.time()+60
+            while True:
+                response = await bot.wait_for("button_click",timeout = t-time.time())
+                if ctx.author == response.user and response.message == message :
+                    break
+        except:
+            await ctx.send(embed = stuff.embed('Вы думали слишком долго',Colour.red(),'Время вышло'))
+            return
+        
+        if response.component.id == 'back':
+            await response.respond(type = 7, embed = think_embed,components = [])
+            continue
+
+        path = json.loads(response.component.id)
+        await response.respond(type = 7, embed = think_embed,components = [])
+        res = field.move(path)
+        if res:
+            game_embed.set_image(url = await generate_image())
+            if res == 'white':
+                game_embed.title = 'Вы выиграли!'
+                game_embed.description = 'Поздравляем'
+            elif res == 'black':
+                game_embed.title = 'Вы проиграли!'
+                game_embed.description = 'Сожалеем'
+            else:
+                game_embed.title = 'Ничья!'
+                game_embed.description = 'И такое бывает'
+            await message.edit(embed = game_embed)
+            return
+        res = checkers_bot.move(field,depth)
+        if res:
+            game_embed.set_image(url = await generate_image())
+            if res == 'white':
+                game_embed.title = 'Вы выиграли!'
+                game_embed.description = 'Поздравляем'
+            elif res == 'black':
+                game_embed.title = 'Вы проиграли!'
+                game_embed.description = 'Сожалеем'
+            else:
+                game_embed.title = 'Ничья!'
+                game_embed.description = 'И такое бывает'
+            await message.edit(embed = game_embed)
+            return
+
+        
