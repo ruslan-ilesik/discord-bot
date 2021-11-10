@@ -91,7 +91,7 @@ async def help(ctx,*args):
 @bot.command(pass_context= True) 
 async def info(ctx):
     if avaible:
-        await ctx.send(embed = stuff.embed('Бот написан на python3.8.5 пользователем ilesik#0358. Если имеете вопросы пишите мне в личные  сообщения\n\n Отдельная благодарность пользователю Raizyr#1337 за помощь',emoji=':wheelchair: '))
+        await ctx.send(embed = stuff.embed('Бот написан на python3.8.5 пользователем ilesik#8553. Если имеете вопросы пишите мне в личные  сообщения\n\n Отдельная благодарность пользователю Raizyr#1337 за помощь',emoji=':wheelchair: '))
 
 
 @bot.command(pass_context= True)
