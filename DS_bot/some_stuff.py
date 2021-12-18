@@ -3,15 +3,13 @@ from discord.utils import get
 import discord
 import json
 import inspect
+import re
 
 import data_base.work_with_db as db
 from __main__ import bot
 
 def ping_to_id (obj): #if u give id it will just return it
-    if obj[0]=='<':
-        return obj[2:len(obj)-1:] #make id from ping
-    else:
-        return obj
+    return re.sub('[^0-9]','', obj)
 
 def check_that_you_have_enough_money(server_id,user_id,price):
     user_balance = db.tuple_to_int(db.select(['balance'],'servers_user_data',['server_id','user_id'],[str(server_id),str(user_id)],['=','='],['AND'])[0])
