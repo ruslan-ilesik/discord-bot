@@ -43,11 +43,14 @@ async def main():
         #send message in all chennals on all servers
         id = [i[0] for i in db.tuple_to_array(db.select(['channel_to_send_game_distributions'],'servers_data',['server_id'],['0'],['>']))]
         for i in id:
-            if i != None:
-                channel = discord.utils.get(bot.get_all_channels(), id=int(i))
-                emb = stuff.embed('Забирать здесь: '+link_to_get,title=what_game_and_where_text,emoji=':tada:')
-                emb.set_thumbnail(url=img_link)
-                await channel.send(embed =  emb)
+            try:
+                if i != None:
+                        channel = discord.utils.get(bot.get_all_channels(), id=int(i))
+                        emb = stuff.embed('Забирать здесь: '+link_to_get,title=what_game_and_where_text,emoji=':tada:')
+                        emb.set_thumbnail(url=img_link)
+                        await channel.send(embed =  emb)
+            except:
+                continue
         
         # write our last game we send distribution
         f = open('events/last_game_distribation.txt','w')
